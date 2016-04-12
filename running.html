@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>test</title>
+    <script>
+    //队列 head <---- tail
+    var quen = {
+        data: [],
+        head: 0,
+        tail: 0,
+        size: 5,
+        in : function(rect) {
+            if ((this.tail + 1) % this.size == this.head) {
+                this.data[this.head] = null;
+                this.head = (this.head + 1) % this.size;
+            }
+            this.data[this.tail] = rect;
+            this.tail = (this.tail + 1) % this.size;
+        },
+        out: function() {
+            if (this.head == this.tail) {
+                console.log("为空");
+                return;
+            } else {
+                var result = this.data[this.head];
+                this.data[this.head] = null;
+                this.head = (this.head + 1) % this.size;
+                return result;
+
+            }
+
+        },
+        len: function() {
+            if (this.head > this.tail) {
+                return 5 - (this.head - this.tail);
+            } else {
+                return (this.tail - this.head);
+            }
+        }
+    };
+    //球对象
+    var ball = {
+        x: 300,
+        y: 420,
+        radius: 20,
+        mx: 10,
+        my: -8,
+        up: true,
+        draw: function() {
+            //清空球的运动区域
+            ctx.beginPath();
+            ctx.fillStyle = "black";
+            ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+            ctx.closePath();
+            ctx.fill();
+        }
+    };
+
+
+    var jumping = false;
+    var raf;
+
+    var distance = 0;
+    var randomDistance = 500;
+    var tempRandomDistance = 0;
+    var clock = 0;
+    var speed = 5;
+
+
+    //柱子移动
+    function roll() {
+        ctx.clearRect(0, 150, 1600, 290);
+
+        if (quen.len() > 0) {
+            //移动
+            for (var i = 0; i < quen.len(); i++) {
+                var subscript = (quen.head + i) % 5;
+                if (quen.data[subscript].distance >= quen.data[subscript].len) {
+                    quen.out();
+                    console.log("out");
+                } else {
+                    ctx.save();
+                    quen.data[subscript].distance += speed;
+                    ctx.translate(-quen.data[subscript].distance, 0);
+                    ctx.fillRect(1600 - quen.data[subscript].width, 440 - quen.data[subscript].height,
+                        quen.data[subscript].width, quen.data[subscript].height);
+                    ctx.restore();
+                }
+            }
+        } else {
+            var height = Math.floor(20 + Math.random() * 190);
+            var width = Math.floor(20 + Math.random() * 40);
+            var rect = {
+                height: height,
+                width: width,
+                distance: 0,
+                len: 1600
+            };
+            quen.in(rect);
+        }
+
+        //跳跃
+        if (jumping) {
+            ctx.save();
+            ball.y += ball.my;
+            ball.draw();
+            // }
+            ball.my = ball.my-10*
+
+            if (ball.y >= 420) {
+                ball.my = -100;
+                ball.up = true;
+                jumping = false;
+            }
+            ctx.restore();
+        }else{
+            ball.draw();
+        }
+
+
+        tempRandomDistance += speed;
+        if (tempRandomDistance >= randomDistance) {
+            var height = Math.floor(20 + Math.random() * 190);
+            var width = Math.floor(20 + Math.random() * 40);
+            randomDistance = Math.floor(Math.random() * 350 + 200);
+            var rect = {
+                height: height,
+                width: width,
+                distance: 0,
+                len: 1600 + randomDistance * 2
+            };
+            quen.in(rect);
+            tempRandomDistance = 0;
+        }
+
+        window.requestAnimationFrame(roll);
+    }
+
+    //入口
+    function draw() {
+        window.canvas = document.getElementById("canvas");
+        window.ctx = canvas.getContext('2d');
+        ctx.scale(0.5, 0.5);
+        ctx.fillRect(0, 440, 1600, 200);
+        ball.draw();
+
+        window.requestAnimationFrame(roll);
+
+        canvas.addEventListener('click', function() {
+            jumping = true;
+        });
+    }
+    </script>
+</head>
+
+<body onload="draw();">
+    <canvas id="canvas" width="800px" height="300px">
+    </canvas>
+</body>
+
+</html>
