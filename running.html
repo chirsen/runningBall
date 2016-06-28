@@ -10,8 +10,9 @@
         data: [],
         head: 0,
         tail: 0,
-        size: 5,
+        size: 7,//虽然size=5，但是实际的容量只有4
         in : function(rect) {
+            //满的情况
             if ((this.tail + 1) % this.size == this.head) {
                 this.data[this.head] = null;
                 this.head = (this.head + 1) % this.size;
@@ -34,7 +35,7 @@
         },
         len: function() {
             if (this.head > this.tail) {
-                return 5 - (this.head - this.tail);
+                return this.size - (this.head - this.tail);
             } else {
                 return (this.tail - this.head);
             }
@@ -60,13 +61,13 @@
 
 
     var jumping = false;
-    var raf;
+    var raf = true;
 
     var distance = 0;
     var randomDistance = 500;
     var tempRandomDistance = 0;
     var clock = 0;
-    var speed = 5;
+    var speed = 4;
 
 
     //柱子移动
@@ -74,29 +75,55 @@
         ctx.clearRect(0, 150, 1600, 290);
 
         if (quen.len() > 0) {
-            //移动
+            //遍历移动柱子
             for (var i = 0; i < quen.len(); i++) {
-                var subscript = (quen.head + i) % 5;
-                if (quen.data[subscript].distance >= quen.data[subscript].len) {
+                //保证从head处开始,tail处结束
+                var subscript = (quen.head + i) % 7;
+                var rectItem = quen.data[subscript];
+                if (rectItem.distance >= rectItem.len) {
                     quen.out();
-                    console.log("out");
                 } else {
                     ctx.save();
-                    quen.data[subscript].distance += speed;
-                    ctx.translate(-quen.data[subscript].distance, 0);
-                    ctx.fillRect(1600 - quen.data[subscript].width, 440 - quen.data[subscript].height,
-                        quen.data[subscript].width, quen.data[subscript].height);
+                    rectItem.distance += speed;
+
+                    var rect_left_x = 1600 - rectItem.distance - rectItem.width;
+                    var rect_top_y = 440 - rectItem.height;
+                    var rect_right_x = 1600 - rectItem.distance ;
+
+                    // //第一种碰撞：)| |
+                    if( rect_left_x < ball.x + ball.radius && rect_left_x > ball.x - ball.radius){
+                        if(ball.y < rect_top_y && Math.sqrt((ball.x - rect_left_x)*(ball.x - rect_left_x) + (ball.y - rect_top_y)*(ball.y - rect_top_y) >= ball.radius)){
+                            // console.log("未碰撞");
+                        }else{
+                            raf = false;
+                            console.log("碰撞1");
+                        }
+                    }
+
+                    // //第二种碰撞：| |(
+                    if( rect_right_x < ball.x + ball.radius && rect_right_x > ball.x - ball.radius){
+                        if(ball.y < rect_top_y && Math.sqrt((ball.x - rect_right_x)*(ball.x - rect_right_x) + (ball.y - rect_top_y)*(ball.y - rect_top_y) ) >= ball.radius ){
+                        }else{
+                            raf = false;
+                            console.log("碰撞2");
+                        }
+                    }
+
+                    //还有第三种碰撞，不需要检测
+                    ctx.translate(-rectItem.distance, 0);
+                    ctx.fillRect(1600 - rectItem.width, 440 - rectItem.height,
+                        rectItem.width, rectItem.height);
                     ctx.restore();
                 }
             }
-        } else {
-            var height = Math.floor(20 + Math.random() * 190);
-            var width = Math.floor(20 + Math.random() * 40);
+        } else { //初始化增加柱子
+            var height = Math.floor(20 + Math.random() * 150);
+            var width = Math.floor(20 + Math.random() * 30);
             var rect = {
                 height: height,
                 width: width,
-                distance: 0,
-                len: 1600
+                distance: 0,  //已经走过的距离
+                len: 1600     //需要走过的距离
             };
             quen.in(rect);
         }
@@ -106,25 +133,34 @@
             ctx.save();
             ball.y += ball.my;
             ball.draw();
-            // }
-            ball.my = ball.my-10*
 
+            //球体的运动（按照物理运动，设置g=1.5）
+            if (ball.y <= 200) {
+                ball.up = false;
+                ball.my = 2;
+            } else if (ball.y <= 220) { //在200到220之间，速度设置为2
+                ball.my = ball.up ? -2 : 2;
+            } else {
+                ball.my = ball.up ? (-1) * Math.sqrt(330 - 1.5 * (420 - ball.y)) : Math.sqrt(330 - 1.5 * (420 - ball.y));
+            }
+            //当降落到ground上时
             if (ball.y >= 420) {
-                ball.my = -100;
+                ball.my = -18;
+                ball.y = 420;
                 ball.up = true;
                 jumping = false;
             }
             ctx.restore();
-        }else{
+        } else {
             ball.draw();
         }
 
-
-        tempRandomDistance += speed;
+        //绘制随机的柱子并且绘制好的柱子进入队列
+        tempRandomDistance += speed;//用于计时
         if (tempRandomDistance >= randomDistance) {
-            var height = Math.floor(20 + Math.random() * 190);
+            var height = Math.floor(20 + Math.random() * 150);
             var width = Math.floor(20 + Math.random() * 40);
-            randomDistance = Math.floor(Math.random() * 350 + 200);
+            randomDistance = Math.floor(Math.random() * 350 + 200);//规定走过randomDistanc之后，产生新的的柱子
             var rect = {
                 height: height,
                 width: width,
@@ -132,10 +168,10 @@
                 len: 1600 + randomDistance * 2
             };
             quen.in(rect);
-            tempRandomDistance = 0;
+            tempRandomDistance = 0;//计时归零
         }
-
-        window.requestAnimationFrame(roll);
+        if(raf)
+            window.requestAnimationFrame(roll);
     }
 
     //入口
@@ -153,11 +189,33 @@
         });
     }
     </script>
+    <style> 
+        .mask{
+            display: none;
+            width: 810px;
+            height: 340px;
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            background-color: #eeeeee;
+            opacity: 0.5;
+            filter: alpha(opacity=50);
+            text-align: center;
+            vertical-align: middle;
+        }
+        .innerText{
+            vertical-align: middle;
+            margin: auto;
+        }
+    </style>
 </head>
 
 <body onload="draw();">
     <canvas id="canvas" width="800px" height="300px">
     </canvas>
+    <div class="mask" id = "mask">
+        <span class="innerText">游戏结束~</span>
+    </div>
 </body>
 
 </html>
